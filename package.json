@@ -10,5 +10,8 @@
         "lodash": "^4.17.19",
         "postcss": "^8.1.14",
         "vite": "^4.0.0"
+    },
+    "require": {
+        "google/gtfs-realtime-bindings": "0.0.2"
     }
 }

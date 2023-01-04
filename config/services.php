@@ -31,4 +31,12 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'mta' => [
+        'key' => env('MTA_API_KEY'),
+        'endpoint' => env('MTA_ENDPOINT'),
+    ],
+
+    'python' => [
+        'path' => env('PYTHON_PATH'),
+    ]
 ];
