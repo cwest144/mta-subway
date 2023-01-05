@@ -22,4 +22,16 @@ class Station extends Model
         'served_by',
         'connected_stations',
     ];
+
+    public function lines(): array
+    {
+        // get all lines that serve this station
+        $lines = $this->served_by;
+        $connectedStations = $this->connected_stations;
+        foreach ($connectedStations as $stationId) {
+            $station = Station::where('station_id', $stationId)->first();
+            $lines = [...$lines, ...$station->served_by];
+        }
+        return $lines;
+    }
 }

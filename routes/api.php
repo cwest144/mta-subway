@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\StationController;
+use App\Http\Controllers\TripController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -21,7 +22,7 @@ Route::get('/arrivals/{stationId}', [StationController::class, 'arrivals'])->nam
 
 // TODO -- accept a beginning and ending station, return possible routes between them with estimated travel times
 // further: accept ranking priorities -- fastest (default) - fewest transfers -- express trains (?) -- least waiting time
-Route::get('/route', [RouteController::class, 'findRoutes'])->name('findRoutes');
+Route::get('/trip', [TripController::class, 'index'])->name('trip.index');
 
 //sketch -----
 // TripService with planTrip function calls findRoutes and then calculateTravelTime
