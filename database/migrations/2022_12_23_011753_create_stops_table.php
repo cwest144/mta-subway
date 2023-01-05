@@ -13,12 +13,14 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('routes', function (Blueprint $table) {
+        Schema::create('stops', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
-            $table->string('line');
-            $table->foreignId('station_id')->constrained()->onUpdate('restrict')->onDelete('restrict');
+            $table->string('line_id');
+            $table->string('station_id');
             $table->string('stop_number');
+
+            $table->foreign('line_id')->references('id')->on('lines')->constrained()->onUpdate('restrict')->onDelete('restrict');
+            $table->foreign('station_id')->references('id')->on('stations')->constrained()->onUpdate('restrict')->onDelete('restrict');
         });
     }
 

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Route extends Model
+class Stop extends Model
 {
     use HasFactory;
 
@@ -15,6 +15,8 @@ class Route extends Model
         'station_id',
         'stop_number',
     ];
+
+    public $timestamps = false;
 
     /**
      * Get the station that corresponds to this stop

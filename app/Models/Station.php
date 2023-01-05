@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Station extends Model
 {
@@ -15,23 +16,50 @@ class Station extends Model
     ];
 
     protected $fillable = [
-        'station_id',
+        'id',
         'name',
         'latitude',
         'longitude',
-        'served_by',
-        'connected_stations',
     ];
 
-    public function lines(): array
+    protected $primaryKey = 'id';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    public $timestamps = false;
+
+    /**
+     * Get the Lines that directly serve this station.
+     * 
+     * @return BelongsToMany
+     */
+    public function lines(): BelongsToMany
     {
-        // get all lines that serve this station
-        $lines = $this->served_by;
-        $connectedStations = $this->connected_stations;
-        foreach ($connectedStations as $stationId) {
-            $station = Station::where('station_id', $stationId)->first();
-            $lines = [...$lines, ...$station->served_by];
+        return $this->belongsToMany(Line::class);
+    }
+
+    /**
+     * Get the Stations that this station is connected to.
+     * 
+     * @return BelongsToMany
+     */
+    public function connectedStations(): BelongsToMany
+    {
+        return $this->belongsToMany(Station::class, 'station_station', 'station', 'connected_station');
+    }
+
+    /**
+     * Get all the Lines that serve this station.
+     * 
+     * @return 
+     */
+    public function allLines(): array
+    {
+        $lines = $this->lines;
+        $connectedStations = $this->connectedStations;
+        foreach ($this->connectedStations as $station) {
+            $lines = [...$lines, ...$station->lines];
         }
-        return $lines;
+        return array_unique($lines);
     }
 }

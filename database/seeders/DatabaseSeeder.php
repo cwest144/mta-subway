@@ -4,7 +4,10 @@ namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
-use App\Models\Route;
+use App\Models\Stop;
+use App\Models\Line;
+use App\Models\LineStation;
+use App\Models\StationStation;
 use App\Models\Station;
 use App\Models\Transfer;
 use Illuminate\Database\Seeder;
@@ -19,31 +22,69 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
-
         $projectRoot = base_path();
+
+        //seed the lines table;
+        Line::create(['id' => 'A']);
+        Line::create(['id' => 'B']);
+        Line::create(['id' => 'C']);
+        Line::create(['id' => 'D']);
+        Line::create(['id' => 'E']);
+        Line::create(['id' => 'F']);
+        Line::create(['id' => 'G']);
+        Line::create(['id' => 'J']);
+        Line::create(['id' => 'L']);
+        Line::create(['id' => 'M']);
+        Line::create(['id' => 'N']);
+        Line::create(['id' => 'Q']);
+        Line::create(['id' => 'R']);
+        Line::create(['id' => 'W']);
+        Line::create(['id' => 'Z']);
+        Line::create(['id' => '1']);
+        Line::create(['id' => '2']);
+        Line::create(['id' => '3']);
+        Line::create(['id' => '4']);
+        Line::create(['id' => '5']);
+        Line::create(['id' => '6']);
+        Line::create(['id' => '7']);
+        Line::create(['id' => 'SM']);
+        Line::create(['id' => 'SR']);
+        Line::create(['id' => 'SB']);
+        Line::create(['id' => 'SIR']);
 
         // seed the stations table;
         $json = file_get_contents("{$projectRoot}/database/seeders/stations.json");
-        $stations = json_decode($json, true);
+        $stationData = json_decode($json, true);
 
-        foreach($stations as $stationId => $data) {
-            Station::create([
-                'station_id' => $stationId,
+        foreach($stationData as $stationId => $data) {
+            $newStation = Station::create([
+                'id' => $stationId,
                 'name' => $data[0],
                 'latitude' => $data[1],
                 'longitude' => $data[2],
-                'served_by' => $data[5],
-                'connected_stations' => $data[6],
             ]);
+
+            foreach($data[5] as $servedBy) {
+                $line = Line::find($servedBy);
+                $newStation->lines()->attach($line->id);
+            }
+        }
+        foreach($stationData as $stationId => $data) {
+            $station = Station::find($stationId);
+            foreach($data[6] as $connected) {
+                $connectedStation = Station::find($connected);
+                $station->connectedStations()->attach($station->id);
+            }
+
         }
 
         // seed the transfers table
         $json = file_get_contents("{$projectRoot}/database/seeders/transfers.json");
-        $transfers = json_decode($json, true);
+        $transferData = json_decode($json, true);
 
-        foreach ($transfers as $transfer) {
-            $station1 = Station::where('station_id', $transfer[0])->first();
-            $station2 = Station::where('station_id', $transfer[1])->first();
+        foreach ($transferData as $transfer) {
+            $station1 = Station::find($transfer[0]);
+            $station2 = Station::find($transfer[1]);
             
             Transfer::create([
                 'station_1_id' => $station1->id,
@@ -52,16 +93,17 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // seed the routes table
-        $json = file_get_contents("{$projectRoot}/database/seeders/routes.json");
-        $routes = json_decode($json, true);
+        // seed the stops table
+        $json = file_get_contents("{$projectRoot}/database/seeders/stops.json");
+        $routeData = json_decode($json, true);
 
-        foreach ($routes as $line => $route) {
+        foreach ($routeData as $lineId => $route) {
             $stopNum = 0;
+            $line = Line::find($lineId);
             foreach ($route as $stop) {
-                $station = Station::where('station_id', $stop)->first();
-                Route::create([
-                    'line' => $line,
+                $station = Station::find($stop);
+                Stop::create([
+                    'line_id' => $line->id,
                     'station_id' => $station->id,
                     'stop_number' => $stopNum,
                 ]);

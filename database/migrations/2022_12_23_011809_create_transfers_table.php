@@ -15,9 +15,8 @@ return new class extends Migration
     {
         Schema::create('transfers', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
-            $table->integer('station_1_id')->unsigned();
-            $table->integer('station_2_id')->unsigned();
+            $table->string('station_1_id');
+            $table->string('station_2_id');
             $table->integer('time');
         });
 

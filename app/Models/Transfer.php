@@ -14,4 +14,6 @@ class Transfer extends Model
         'station_2_id',
         'time',
     ];
+
+    public $timestamps = false;
 }
