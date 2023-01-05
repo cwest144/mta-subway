@@ -55,7 +55,7 @@ class Station extends Model
      */
     public function allLines(): array
     {
-        $lines = $this->lines;
+        $lines = $this->lines->all();
         $connectedStations = $this->connectedStations;
         foreach ($this->connectedStations as $station) {
             $lines = [...$lines, ...$station->lines];

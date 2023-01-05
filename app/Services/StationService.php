@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Station;
+use App\Models\Line;
 use App\Services\MtaService;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
@@ -21,11 +22,11 @@ class StationService
         $arrivals = [];
 
         // foreach line, get upcoming arrivals at this station
-        foreach ($this->station->lines() as $line) {
+        foreach ($this->station->allLines() as $line) {
             $path = $this->getPath($line);
             $result = $this->mta->callMta($path);
 
-            $arrivals[$line] = $this->mta->parseFeed($line, $this->station, $result["entity"]);
+            $arrivals[$line->id] = $this->mta->parseFeed($line, $this->station, $result["entity"]);
         }
 
         return $arrivals;
@@ -34,12 +35,12 @@ class StationService
     /**
      * Returns the path for the MTA endpoint corresponding to the given $line
      * 
-     * @param string $line
+     * @param Line $line
      * @return string
      */
-    private function getPath(string $line): string
+    private function getPath(Line $line): string
     {
-        return match ($line) {
+        return match ($line->id) {
             'A', 'C', 'E' => 'ace',
             'G' => 'g',
             'N', 'Q', 'R', 'W' => 'nqrw',

@@ -3,22 +3,23 @@
 namespace App\Services;
 
 use App\Models\Station;
+use App\Models\Line;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Illuminate\Support\Arr;
 
 class MtaService
 {
-    public function parseFeed(string $line, Station $station, array $feed)
+    public function parseFeed(Line $line, Station $station, array $feed)
     {
         $now = time();
 
-        $platforms = [$station->station_id . 'N',  $station->station_id . 'S'];
+        $platforms = [$station->id . 'N',  $station->id . 'S'];
 
         $arrivals = [];
 
         foreach ($feed as $item) {
-            if (Arr::get($item, 'tripUpdate.trip.routeId') === $line) {
+            if (Arr::get($item, 'tripUpdate.trip.routeId') === $line->id) {
                 $stopUpdates = Arr::get($item, 'tripUpdate.stopTimeUpdate');
                 if ($stopUpdates === null) continue;
                 foreach($stopUpdates as $stopUpdate) {

@@ -19,7 +19,7 @@ class Stop extends Model
     public $timestamps = false;
 
     /**
-     * Get the station that corresponds to this stop
+     * Get the station that corresponds to this stop.
      * 
      * @return BelongsTo
      */

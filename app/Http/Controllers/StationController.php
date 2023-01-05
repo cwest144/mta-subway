@@ -17,7 +17,7 @@ class StationController extends Controller
      */
     public function arrivals(string $stationId): JsonResponse
     {
-        $station = Station::where('station_id', $stationId)->first();
+        $station = Station::find($stationId);
 
         $service = App::makeWith(StationService::class, ['station' => $station]);
 

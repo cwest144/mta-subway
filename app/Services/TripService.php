@@ -27,19 +27,6 @@ class TripService
         // }
     }
 
-    public function transfers(Collection $routeList, string $line): array
-    {
-        $transfers = [];
-        foreach($routeList as $stop) {
-            if (in_array($line, $stop->station->served_by)) {
-                $transfers[] = $stop->station;
-                continue;
-            }
-            //todo: for each connected station, check if served by line
-        }
-        return $transfers;
-    }
-
     public function findTrips(): array
     {
         $trips = [];
@@ -63,6 +50,20 @@ class TripService
                 }
             }
         }
+    }
+
+    public function transfers(Collection $routeList, string $line): array
+    {
+        $transfers = [];
+        foreach($routeList as $stop) {
+            if (in_array($line, $stop->station->served_by)) {
+                $transfers[] = $stop->station;
+                continue;
+            }
+            //todo: for each connected station, check if served by line
+        }
+        return $transfers;
+    }
 
 
     // linesBeg = stopDict[beg][5]
@@ -139,8 +140,6 @@ class TripService
     //                     grandchildTree.insert(end, line3)
 
     // return
-
-    }
 
     public function calculateTravelTime(Trip $trip): Trip
     {

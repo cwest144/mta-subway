@@ -20,12 +20,12 @@ class TripController extends Controller
     public function index(Request $request): JsonResponse
     {
         $request->validate([
-            'start' => 'required|string|exists:App\Models\Station,station_id',
-            'end' => 'required|string|exists:App\Models\Station,station_id|different:start',
+            'start' => 'required|string|exists:App\Models\Station,id',
+            'end' => 'required|string|exists:App\Models\Station,id|different:start',
         ]);
 
-        $start = Station::where('station_id', $request->start)->first();
-        $end = Station::where('station_id', $request->end)->first();
+        $start = Station::find($request->start);
+        $end = Station::find($request->end);
 
         $service = App::make(TripService::class);
 
@@ -34,14 +34,6 @@ class TripController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $result,
-        ], 200);
-
-        $station = Station::where('station_id', $stationId)->first();
-
-        $service = App::makeWith(StationService::class, ['station' => $station]);
-
-        $arrivals = $service->getArrivals();
-
-        
+        ], 200);        
     }
 }
