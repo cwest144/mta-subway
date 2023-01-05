@@ -27,13 +27,15 @@ class TripController extends Controller
         $start = Station::find($request->start);
         $end = Station::find($request->end);
 
-        $service = App::make(TripService::class);
+        $service = App::make(TripService::class, ['start' => $start, 'end' => $end]);
 
-        $result = $service->plan($start, $end);
+        $trips = $service->plan();
+
+        $formattedResult = $service->formatTrips($trips);
 
         return response()->json([
             'status' => 'success',
-            'data' => $result,
+            'data' => $formattedResult,
         ], 200);        
     }
 }

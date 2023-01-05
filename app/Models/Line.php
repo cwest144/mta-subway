@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Line extends Model
 {
@@ -28,5 +29,15 @@ class Line extends Model
     public function stations(): BelongsToMany
     {
         return $this->belongsToMany(Station::class);
+    }
+
+    /**
+     * Get the Stops that correspond to this line.
+     * 
+     * @return HasMany
+     */
+    public function stops(): HasMany
+    {
+        return $this->hasMany(Stop::class);
     }
 }
