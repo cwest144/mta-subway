@@ -73,7 +73,7 @@ class DatabaseSeeder extends Seeder
             $station = Station::find($stationId);
             foreach($data[6] as $connected) {
                 $connectedStation = Station::find($connected);
-                $station->connectedStations()->attach($station->id);
+                $station->connectedStations()->attach($connectedStation->id);
             }
 
         }

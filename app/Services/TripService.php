@@ -7,8 +7,11 @@ use App\Models\Route;
 use App\Models\Line;
 use App\Helpers\Trip;
 use App\Helpers\TripSegment;
+use App\Models\Transfer;
 use App\Services\MtaService;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\App;
 
 class TripService
 {
@@ -38,12 +41,19 @@ class TripService
     {
         $trips = $this->findTrips();
 
-        return $trips;
+        foreach ($trips as $trip) {
+            $this->calculateTravelTime($trip);
+        }
 
-        // foreach ($trips as $trip) {
-        //     calculateTravelTime($trip);
+        usort($trips, function ($a, $b) {
+            if ($a->endTime === null) return 1;
+            if ($b->endTime === null) return -1;
+            return $a->endTime <=> $b->endTime;
+        });
 
-        // }
+        $culledTrips = $this->removeSimilarTrips($trips);
+
+        return $culledTrips;
     }
 
     /**
@@ -58,18 +68,18 @@ class TripService
         // find all direct or single transfer trips
         foreach($this->start->allLines() as $line1) {
             foreach($this->end->allLines() as $line2) {
-                if ($line1 === $line2) {
+                if ($line1->id === $line2->id) {
                     $trips[] = new Trip(
-                        $this->start,
-                        $this->end,
                         [
-                            new TripSegment([TripSegment::TRAIN, $line1]),
+                            new TripSegment(TripSegment::STATION, $this->start),
+                            new TripSegment(TripSegment::TRAIN, $line1),
+                            new TripSegment(TripSegment::STATION, $this->end),
                         ],
                     );
                 }
                 else {
                     $route = $line1->stops()->orderBy('stop_number')->get();
-                    $commonStations = $this->transfers($route, $line2);
+                    $commonStations = $this->transfers($route, $line2, [$this->start->id, $this->end->id]);
 
                     foreach ($commonStations as $pair) {
                         $transfer = $pair[0];
@@ -90,7 +100,11 @@ class TripService
                                 new TripSegment(TripSegment::TRAIN, $line2),
                             ];
                         }
-                        $trips[] = new Trip($this->start, $this->end, $thisTrip);
+                        $trips[] = new Trip([
+                            new TripSegment(TripSegment::STATION, $this->start),
+                            ...$thisTrip,
+                            new TripSegment(TripSegment::STATION, $this->end),
+                        ]);
                     }
                 }
             }
@@ -101,16 +115,19 @@ class TripService
 
     /**
      * Given a route (a collection of Stops) and a Line, returns an array of possible transfer stations,
-     * each formatted as array pairs like: [station, connectedStation]
+     * each formatted as array pairs like: [station, connectedStation].
+     * Exclude the stops in $exclude.
      * 
      * @param Collection $route
      * @param Line $line 
+     * @param array $exclude
      * @return array
      */
-    public function transfers(Collection $route, Line $line): array
+    public function transfers(Collection $route, Line $line, array $exclude): array
     {
         $transfers = [];
         foreach ($route as $stop) {
+            if (in_array($stop->station->id, $exclude)) continue;
             if ($stop->station->lines->contains('id', $line->id)) {
                 $transfers[] = [$stop->station, $stop->station];
                 continue;
@@ -176,8 +193,64 @@ class TripService
     /**
      * 
      */
-    public function calculateTravelTime(Trip $trip): Trip
-    {
+    public function calculateTravelTime(Trip &$trip): void
+    {        
+        $futureTime = now();
+        $previous = $trip->trip[0];
+        for($i = 1; $i < count($trip->trip); $i++) {
+            $current = $trip->trip[$i];
 
+            //trip time is calculated in chunks as station -> train -> station
+            if ($previous->type === TripSegment::STATION && $current->type === TripSegment::TRAIN) {
+                $next = $trip->trip[$i + 1];
+
+                $service = App::makeWith(StationService::class, ['station' => $previous->value]);
+                $potentialDestinationTime = $service->calculateTravelTime($futureTime, $current->value, $next->value);
+                if ($potentialDestinationTime === null) {
+                    logger()->info("previous: {$previous->value->name}, current: {$current->value->id}, next: {$next->value->name}");
+                    return;
+                }
+                $futureTime = $potentialDestinationTime;
+
+                $previous = $next;
+                $i++;
+            } else { //the other way trip time is calculated is as station -> station
+                $transfer = Transfer::where('station_1_id', $previous->value->id)->where('station_2_id', $current->value->id)->first();
+                if ($transfer === null) {
+                    $transfer = Transfer::where('station_1_id', $current->value->id)->where('station_2_id', $previous->value->id)->first();
+                }
+                $time = $transfer->time ?? 180;
+                $futureTime->addSeconds($time);
+                $previous = $current;
+            }
+        }
+
+        //if ($futureTime !== null) dd($futureTime);
+        $trip->endTime = $futureTime;
+
+        //$trip->endTime = $futureTime;
+
+        //return $trip;
+    }
+
+    public function removeSimilarTrips(array $trips): array
+    {
+        $culledTrips = [];
+
+        $culledTripSignatures = [];
+
+        foreach ($trips as $trip) {
+            if (count($trip->trip) <= 3) {
+                $culledTrips[] = $trip;
+                continue;
+            }
+            $signature = $trip->trains();
+            if (!in_array($signature, $culledTripSignatures)) {
+                $culledTrips[] = $trip;
+                $culledTripSignatures[] = $signature;
+            }
+        }
+
+        return $culledTrips;
     }
 }

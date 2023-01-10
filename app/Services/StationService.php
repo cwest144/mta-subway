@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\Station;
 use App\Models\Line;
+use App\Models\Stop;
 use App\Services\MtaService;
-use Symfony\Component\Process\Process;
-use Symfony\Component\Process\Exception\ProcessFailedException;
+use Carbon\Carbon;
 
 class StationService
 {
@@ -26,10 +26,38 @@ class StationService
             $path = $this->getPath($line);
             $result = $this->mta->callMta($path);
 
-            $arrivals[$line->id] = $this->mta->parseFeed($line, $this->station, $result["entity"]);
+            $arrivals[$line->id] = $this->mta->parseFeedForArrivals($line, $this->station, $result["entity"]);
         }
 
         return $arrivals;
+    }
+
+    /**
+     * Calculate the travel time from $this->station to $end via $line, starting at $now.
+     * Returns the time of arrival or null if no routes are found.
+     * 
+     * @param Carbon $now
+     * @param Line $line
+     * @param Station $end
+     * @return null|Carbon 
+     */
+    public function calculateTravelTime(Carbon $now, Line $line, Station $end): null|Carbon
+    {
+        $path = $this->getPath($line);
+        $result = $this->mta->callMta($path);
+
+        $stop1 = Stop::where('line_id', $line->id)->where('station_id', $this->station->id)->first();
+        $stop2 = Stop::where('line_id', $line->id)->where('station_id', $end->id)->first();
+
+        if ($stop1 === null || $stop2 === null) return null;
+
+        $heading = ($stop1->stop_number > $stop2->stop_number) ? 'N' : 'S';
+
+        $destinationTime = $this->mta->parseFeedForTrip($now, $this->station, $line, $end, $heading, $result["entity"]);
+
+        logger()->info("returning time from station::calculateTravelTime()", [$destinationTime]);
+
+        return $destinationTime;
     }
 
     /**

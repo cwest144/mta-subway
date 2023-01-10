@@ -2,12 +2,12 @@
 
 namespace App\Helpers;
 
-use App\Models\Station;
 use App\Helpers\TripSegment;
+use Carbon\Carbon;
 
 class Trip
 {
-    public function __construct(public Station $start, public Station $end, public array $trip = []) { }
+    public function __construct(public array $trip = [], public Carbon|null $endTime = null) { }
 
     /**
      * Returns a formatted version of a Trip for API responses.
@@ -17,7 +17,6 @@ class Trip
     public function format(): array
     {
         return [
-            'start' => $this->start->id,
             'trip' => array_map( function($tripSegment) {
                     if ($tripSegment->type === TripSegment::STATION) {
                         return [
@@ -31,7 +30,19 @@ class Trip
                     }
                 },
                 $this->trip),
-            'end' => $this->end->id,
+            'endTime' => $this->endTime,
         ];
+    }
+
+    public function trains(): array
+    {
+        $unfiltered = array_map( function ($segment) {
+                if ($segment->type === TripSegment::STATION) return null;
+                return $segment->value->id;
+            },
+            $this->trip
+        );
+
+        return array_values(array_filter($unfiltered, fn ($e) => $e !== null));
     }
 }
