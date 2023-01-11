@@ -11,7 +11,17 @@ use Illuminate\Support\Arr;
 
 class MtaService
 {
-    public function parseFeedForArrivals(Line $line, Station $station, array $feed)
+    public function __construct(public array $feeds = []) {}
+
+    /**
+     *  Parse an MTA API $feed and return an array of $line arrivals at $station.
+     * 
+     * @param Line $line 
+     * @param Station $station 
+     * @param array $feed 
+     * @return array 
+     */
+    public function parseFeedForArrivals(Line $line, Station $station, array $feed): array
     {
         $platforms = [$station->id . 'N',  $station->id . 'S'];
 
@@ -24,7 +34,10 @@ class MtaService
                 foreach($stopUpdates as $stopUpdate) {
                     $platform = Arr::get($stopUpdate, 'stopId');
                     if (in_array($platform, $platforms)) {
-                        $arrivals[$platform][] = Arr::get($stopUpdate, 'departure.time');
+                        $departureTime = Arr::get($stopUpdate, 'departure.time');
+                        if ($departureTime !== null) {
+                            $arrivals[$platform][] = $departureTime;
+                        }
                     }
                 }
             }
@@ -34,6 +47,8 @@ class MtaService
     }
 
     /**
+     * Parse the MTA API $feed to calculate the earliest arrival time at Station $end, starting at
+     * time $now and Station $start and traveling on $line with $heading.
      * 
      * @param Carbon $now 
      * @param Station $start 
@@ -48,7 +63,7 @@ class MtaService
         $platformStart = $start->id . $heading;
         $platformEnd = $end->id . $heading;
 
-        $earliestDeparture = null;
+        //$earliestDeparture = null; not used for now
         $earliestDestination = null;
 
         foreach ($feed as $item) {
@@ -66,34 +81,30 @@ class MtaService
 
             if ($departureTime !== null && $destinationTime !== null) {
                 if ($earliestDestination === null || $earliestDestination->gt($destinationTime)) {
-                    $earliestDeparture = $departureTime;
+                    //$earliestDeparture = $departureTime;
                     $earliestDestination = $destinationTime;
                 }
             }            
         }
 
-        // dump($earliestDeparture);
-        // dd($earliestDestination);
-
         return $earliestDestination;
     }
 
     /**
-     * TODO
+     * Search an array of $stopUpdates (the live-data itinerary for a train) for an arrival at $platform at a time later than $now.
      * 
      * @param array $stopUpdates 
-     * @param mixed $platform 
-     * @param mixed $now 
+     * @param string $platform 
+     * @param Carbon $now 
      * @return null|Carbon 
      */
-    public static function searchStopTimeUpdate(array $stopUpdates, $platform, $now): null|Carbon
+    public static function searchStopTimeUpdate(array $stopUpdates, string $platform, Carbon $now): null|Carbon
     {
-        $baseTime = new Carbon('first day of january 1970');
-
+        $baseTime = new Carbon('first day of january 1970'); //the base time that MTA measures from
 
         foreach ($stopUpdates as $stopUpdate) {
             $thisPlatform = Arr::get($stopUpdate, 'stopId');
-            $arrivalTimeStr = Arr::get($stopUpdate, 'arrival.time');
+            $arrivalTimeStr = Arr::get($stopUpdate, 'arrival.time') ?? Arr::get($stopUpdate, 'departure.time');
             if ($thisPlatform === null || $arrivalTimeStr === null) continue;
             $arrivalTime = $baseTime->copy()->addSeconds(intval($arrivalTimeStr, 10));
             if ($thisPlatform === $platform && $arrivalTime->gt($now)) {
@@ -106,23 +117,22 @@ class MtaService
     /**
      * Call the MTA API and return the response body.
      * 
-     * @param string $path
+     * @param Line $line
      * @return array|bool
      */
-    public function callMta(string $path): array|bool
-    {
-        //$client = new Client();
+    public function callMta(Line $line): array|bool
+    {   
+        $path = $this->getPath($line);
+
+        $pathKey = ($path === '') ? 'irt' : $path;
+
+        $existingFeed = Arr::get($this->feeds, $pathKey) ?? [];
+        if ($existingFeed !== []) return $existingFeed;
 
         $url = config('services.mta.endpoint');
         if ($path !== '') {
             $url .= "-${path}";
         }
-
-        $clientOptions = [
-            'headers' => [
-                'x-api-key' => config('services.mta.key'),
-            ]
-        ];
 
         $process = new Process([config('services.python.path'), base_path() . '/callApi.py', $url]);
         $process->run();
@@ -131,6 +141,30 @@ class MtaService
             throw new ProcessFailedException($process);
         }
 
-        return json_decode($process->getOutput(), true);        
+        $result = json_decode($process->getOutput(), true);
+
+        $this->feeds[$pathKey] = $result['entity'];
+
+        return $result['entity'];
+    }
+
+    /**
+     * Returns the path for the MTA endpoint corresponding to the given $line.
+     * 
+     * @param Line $line
+     * @return string
+     */
+    private function getPath(Line $line): string
+    {
+        return match ($line->id) {
+            'A', 'C', 'E', 'H', 'FS' => 'ace',
+            'G' => 'g',
+            'N', 'Q', 'R', 'W' => 'nqrw',
+            '1', '2', '3', '4', '5', '6', '7', 'GS' => '',
+            'B', 'D', 'F', 'M' => 'bdfm',
+            'J', 'Z' => 'jz',
+            'L' => 'l',
+            'SIR' => 'si'
+        };
     }
 }

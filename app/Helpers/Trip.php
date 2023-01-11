@@ -34,6 +34,12 @@ class Trip
         ];
     }
 
+    /**
+     * Returns an (ordered) array of IDs of the Lines this trip utilizes.
+     * Used for checking similarity between two Trips.
+     * 
+     * @return array 
+     */
     public function trains(): array
     {
         $unfiltered = array_map( function ($segment) {

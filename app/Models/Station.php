@@ -10,11 +10,6 @@ class Station extends Model
 {
     use HasFactory;
 
-    protected $casts = [
-        'served_by' => 'array',
-        'connected_stations' => 'array',
-    ];
-
     protected $fillable = [
         'id',
         'name',
@@ -29,7 +24,7 @@ class Station extends Model
     public $timestamps = false;
 
     /**
-     * Get the Lines that directly serve this station.
+     * Get the Lines that directly serve this Station.
      * 
      * @return BelongsToMany
      */
@@ -39,7 +34,7 @@ class Station extends Model
     }
 
     /**
-     * Get the Stations that this station is connected to.
+     * Get the Stations that this Station is connected to.
      * 
      * @return BelongsToMany
      */
@@ -49,14 +44,13 @@ class Station extends Model
     }
 
     /**
-     * Get all the Lines that serve this station.
+     * Get all the Lines that serve this Station.
      * 
-     * @return 
+     * @return array
      */
     public function allLines(): array
     {
         $lines = $this->lines->all();
-        $connectedStations = $this->connectedStations;
         foreach ($this->connectedStations as $station) {
             $lines = [...$lines, ...$station->lines];
         }

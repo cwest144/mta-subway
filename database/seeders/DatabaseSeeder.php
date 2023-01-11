@@ -47,9 +47,9 @@ class DatabaseSeeder extends Seeder
         Line::create(['id' => '5']);
         Line::create(['id' => '6']);
         Line::create(['id' => '7']);
-        Line::create(['id' => 'SM']);
-        Line::create(['id' => 'SR']);
-        Line::create(['id' => 'SB']);
+        Line::create(['id' => 'GS']);
+        Line::create(['id' => 'H']);
+        Line::create(['id' => 'FS']);
         Line::create(['id' => 'SIR']);
 
         // seed the stations table;
