@@ -39,7 +39,11 @@ class TripService
     public function plan(): array
     {
         //find possible trips between $this->start and $this->end
-        $trips = $this->findTrips();
+        //$trips = $this->findShortTrips();
+        $trips = [];
+        if (count($trips) < 3) {
+            $trips = array_merge($trips, $this->findLongTrips());
+        }
 
         //calculate travel time for all trips
         foreach ($trips as $trip) {
@@ -56,15 +60,16 @@ class TripService
         //remove similar trips
         $culledTrips = $this->removeSimilarTrips($trips);
 
+    
         return $culledTrips;
     }
 
     /**
-     * Find all possible trips between $this->start and $this->end.
+     * Find all possible trips between $this->start and $this->end that require just 1 or 2 Lines.
      * 
      * @return array
      */
-    public function findTrips(): array
+    public function findShortTrips(): array
     {
         $trips = [];
 
@@ -134,20 +139,22 @@ class TripService
             }
         }
 
-        //check length of trips, search for more complicated trips if ... trips is empty (definitely), trips has fewer than 3(?) trips?
+        return $trips;
+    }
 
-        if (count($trips) > 2) return $trips;
-
+    /**
+     * Find all possible trips between $this->start and $this->end that require 3 Lines.
+     * 
+     * @return array 
+     */
+    public function findLongTrips(): array
+    {
         $allLines = Line::get()->pluck('id')->toArray();
 
-        $linePairs = []; //which lines are connected to eachother
-        // linePairs = [('1', '2'), ('1', '3'), ('1', '7'), ('1', 'A'), ('1', 'B'), ('1', 'C'), ('1', 'D'), ('1', 'N'), ('1', 'Q'), ('1', 'R'), ('1', 'SM'), ('1', 'W'), ('2', '3'), ('2', '4'), ('2', '5'), ('2', '7'), ('2', 'A'), ('2', 'B'), ('2', 'C'), ('2', 'J'), ('2', 'N'), ('2', 'Q'), ('2', 'R'), ('2', 'SM'), ('2', 'W'), ('2', 'Z'), ('3', '4'), ('3', '5'), ('3', '7'), ('3', 'A'), ('3', 'B'), ('3', 'C'), ('3', 'J'), ('3', 'N'), ('3', 'Q'), ('3', 'R'), ('3', 'SM'), ('3', 'W'), ('3', 'Z'), ('4', '5'), ('4', '6'), ('4', '7'), ('4', 'A'), ('4', 'B'), ('4', 'C'), ('4', 'D'), ('4', 'J'), ('4', 'L'), ('4', 'N'), ('4', 'Q'), ('4', 'R'), ('4', 'SM'), ('4', 'W'), ('4', 'Z'), ('5', '6'), ('5', '7'), ('5', 'A'), ('5', 'B'), ('5', 'C'), ('5', 'J'), ('5', 'L'), ('5', 'N'), ('5', 'Q'), ('5', 'R'), ('5', 'SM'), ('5', 'W'), ('5', 'Z'), ('6', '7'), ('6', 'J'), ('6', 'L'), ('6', 'N'), ('6', 'Q'), ('6', 'R'), ('6', 'SM'), ('6', 'W'), ('6', 'Z'), ('7', 'G'), ('7', 'N'), ('7', 'Q'), ('7', 'R'), ('7', 'SM'), ('7', 'W'), ('A', 'B'), ('A', 'C'), ('A', 'D'), ('A', 'E'), ('A', 'F'), ('A', 'G'), ('A', 'J'), ('A', 'L'), ('A', 'M'), ('A', 'R'), ('A', 'Z'), ('B', 'C'), ('B', 'D'), ('B', 'E'), ('B', 'F'), ('B', 'M'), ('B', 'N'), ('B', 'Q'), ('B', 'R'), ('B', 'SB'), ('B', 'W'), ('C', 'D'), ('C', 'E'), ('C', 'F'), ('C', 'G'), ('C', 'J'), ('C', 'L'), ('C', 'M'), ('C', 'R'), ('C', 'SB'), ('C', 'Z'), ('D', 'E'), ('D', 'F'), ('D', 'M'), ('D', 'N'), ('D', 'Q'), ('D', 'R'), ('D', 'W'), ('E', 'F'), ('E', 'J'), ('E', 'M'), ('E', 'R'), ('E', 'Z'), ('F', 'G'), ('F', 'J'), ('F', 'M'), ('F', 'N'), ('F', 'Q'), ('F', 'R'), ('F', 'W'), ('F', 'Z'), ('G', 'R'), ('J', 'L'), ('J', 'M'), ('J', 'N'), ('J', 'Q'), ('J', 'R'), ('J', 'W'), ('J', 'Z'), ('L', 'M'), ('L', 'N'), ('L', 'Q'), ('L', 'R'), ('L', 'W'), ('L', 'Z'), ('M', 'N'), ('M', 'Q'), ('M', 'R'), ('M', 'W'), ('M', 'Z'), ('N', 'Q'), ('N', 'R'), ('N', 'SM'), ('N', 'W'), ('N', 'Z'), ('Q', 'R'), ('Q', 'SM'), ('Q', 'SB'), ('Q', 'W'), ('Q', 'Z'), ('R', 'SM'), ('R', 'W'), ('R', 'Z'), ('SM', 'W'), ('SR', 'A'), ('W', 'Z')]
-
-        $linesMid = $allLines; //TODO
-        // linesMid = listRemove(allLines, linesBeg)
-        // linesMid = listRemove(linesMid, linesEnd)
-
-        // toDel = []
+        $linesBeg = array_map(fn ($e) => $e->id, $this->start->allLines());
+        $linesEnd = array_map(fn ($e) => $e->id, $this->end->allLines());
+        $linesMidLetters = array_diff($allLines, array_merge($linesBeg, $linesEnd));
+        $linesMid = array_map(fn ($e) => Line::find($e), $linesMidLetters);
 
         foreach($this->start->allLines() as $line1) {
 
@@ -161,8 +168,22 @@ class TripService
                 }
             }
 
+            $route1 = $line1->stops()->orderBy('stop_number')->get();
+
             foreach($linesMid as $line2) {
+
+                // check if line1 and line2 intersect
+                $commonStations1 = $this->transfers($route1, $line2, [$this->start->id]);
+                if (count($commonStations1) === 0) continue;
+
+                $route2 = $line2->stops()->orderBy('stop_number')->get();
+
                 foreach($this->end->allLines() as $line3) {
+
+                    //check if line2 and line3 intersect
+                    $commonStations2 = $this->transfers($route2, $line3, [$this->end->id]);
+                    if (count($commonStations2) === 0) continue;
+
                     $endSegments = [];
                     if (!$this->end->lines->contains($line3)) {
                         foreach ($this->end->connectedStations as $connectedStation) {
@@ -174,18 +195,7 @@ class TripService
                     }
                     $endSegments[] = new TripSegment(TripSegment::STATION, $this->end);
 
-                    //check if line1 and line2 are connected
-                    //check if line2 and line3 are connected
-                    //can maybe use stops and station_station tables instead of LinePairs
-
-                    $route1 = $line1->stops()->orderBy('stop_number')->get();
-                    $route2 = $line2->stops()->orderBy('stop_number')->get();
-
-                    $commonStations1 = $this->transfers($route1, $line2, [$this->start->id]);
-                    $commonStations2 = $this->transfers($route2, $line3, [$this->end->id]);
-
                     foreach ($commonStations1 as $pair1) {
-
                         if ($pair1[0]->id === $pair1[1]->id) {
                             $transferSegments1 = [new TripSegment(TripSegment::STATION, $pair1[0])];
                         } else {
