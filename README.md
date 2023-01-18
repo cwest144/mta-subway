@@ -1,66 +1,175 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+MTA Subway Route Finder
+===
 
-<p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+_Built by [Chris West](https://cwest144.com)_
 
-## About Laravel
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Requirements
+* PHP 8.1+
+* [Composer](https://getcomposer.org)
+* Redis
+* PostgreSQL
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Setup
+* Install packages: `composer install`
+* Create a database for the application
+* Run the database migrations with `php artisan migrate` and seed the database with `php artisan db:seed`.
+* Set up and fill out environment variables: `cp .env.example .env`. Make sure the `DB_*`, `MTA_*` and `PYTHON_PATH` variables are filled in. This application uses a python executable to interface with the MTA API, so `PYTHON_PATH` should be the path to your installed python, for example `/opt/homebrew/opt/python@3.10/bin/python3.10`. Get an MTA API key [here](https://api.mta.info/#/landing).
 
-## Learning Laravel
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## USAGE
+* Local use of the application can be done by starting a local server with `php artisan serve`.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## ENDPOINTS
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Find routes between two stations with trip end time: `/api/trip`
 
-## Laravel Sponsors
+Include `start` and `end` keys in the query parameters, where each is a station ID from the `id` column of the `Stations` table. This will return an array of possible `trip`s between the start and end stations. Each `trip` will include an array of `tripSegments` in order, essentially an array of lines to take and stations to transfer at in order to complete the trip. The `trip` also includes an `endTime` which is the estimated completion time of the `trip` in `GMT` using real time MTA data and including transfer time between stations, if the trip begins at the time of the request. The results are ordered by soonest `endTime`s first.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+An example response with `start = F20` (Bergen Street -- F, G) and `end = A46` (Nostrand Ave -- A, C):
 
-### Premium Partners
+```json
+{
+    "status": "success",
+    "data": [
+        {
+            "trip": [
+                {
+                    "station": "F20",
+                    "name": "Bergen St"
+                },
+                {
+                    "train": "G"
+                },
+                {
+                    "station": "A42",
+                    "name": "Hoyt-Schermerhorn Sts"
+                },
+                {
+                    "train": "C"
+                },
+                {
+                    "station": "A46",
+                    "name": "Nostrand Av"
+                }
+            ],
+            "endTime": "2023-01-18T22:47:44.000000Z"
+        },
+        {
+            "trip": [
+                {
+                    "station": "F20",
+                    "name": "Bergen St"
+                },
+                {
+                    "train": "F"
+                },
+                {
+                    "station": "A41",
+                    "name": "Jay St-MetroTech"
+                },
+                {
+                    "train": "A"
+                },
+                {
+                    "station": "A46",
+                    "name": "Nostrand Av"
+                }
+            ],
+            "endTime": "2023-01-18T22:49:30.000000Z"
+        },
+        {
+            "trip": [
+                {
+                    "station": "F20",
+                    "name": "Bergen St"
+                },
+                {
+                    "train": "G"
+                },
+                {
+                    "station": "A42",
+                    "name": "Hoyt-Schermerhorn Sts"
+                },
+                {
+                    "train": "A"
+                },
+                {
+                    "station": "A46",
+                    "name": "Nostrand Av"
+                }
+            ],
+            "endTime": "2023-01-18T22:49:30.000000Z"
+        },
+        {
+            "trip": [
+                {
+                    "station": "F20",
+                    "name": "Bergen St"
+                },
+                {
+                    "train": "F"
+                },
+                {
+                    "station": "A41",
+                    "name": "Jay St-MetroTech"
+                },
+                {
+                    "train": "C"
+                },
+                {
+                    "station": "A46",
+                    "name": "Nostrand Av"
+                }
+            ],
+            "endTime": "2023-01-18T22:55:09.000000Z"
+        }
+    ]
+}
+```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+### Find upcoming arrivals at a station: `/api/arrivals/{stationId}`
 
-## Contributing
+Use a `stationId` from the `id` column of the `Stations` table. An example response using the station `A46` (Nostrand Ave):
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```json
+{
+    "status": "success",
+    "data": {
+        "A": {
+            "A46S": [
+                "1674080091",
+                "1674079720",
+                ...
+                "1674086130",
+                "1674086370"
+            ],
+            "A46N": [
+                "1674079791",
+                "1674080631",
+                ...
+                "1674085440",
+                "1674084300"
+            ]
+        },
+        "C": {
+            "A46S": [
+                "1674080091",
+                "1674080812",
+                ...
+                "1674085300",
+                "1674086100"
+            ],
+            "A46N": [
+                "1674079724",
+                "1674080670",
+                ...
+                "1674083090",
+                "1674083940"
+            ]
+        }
+    }
+}
+```
+The response is structured as line designation > platform (north or south bound) > upcoming arrivals (seconds since 00:00:00 1/1/1970).

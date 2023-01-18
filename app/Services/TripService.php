@@ -39,8 +39,7 @@ class TripService
     public function plan(): array
     {
         //find possible trips between $this->start and $this->end
-        //$trips = $this->findShortTrips();
-        $trips = [];
+        $trips = $this->findShortTrips();
         if (count($trips) < 3) {
             $trips = array_merge($trips, $this->findLongTrips());
         }
