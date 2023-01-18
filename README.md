@@ -1,7 +1,7 @@
 MTA Subway Route Finder
 ===
 
-_Built by <a href="https://cwest144.com/" target="_blank">Chris West</a>
+Built by [Chris West](https://cwest144.com/)
 
 
 ## Requirements
@@ -15,7 +15,7 @@ _Built by <a href="https://cwest144.com/" target="_blank">Chris West</a>
 * Install packages: `composer install`
 * Create a database for the application
 * Run the database migrations with `php artisan migrate` and seed the database with `php artisan db:seed`.
-* Set up and fill out environment variables: `cp .env.example .env`. Make sure the `DB_*`, `MTA_*` and `PYTHON_PATH` variables are filled in. This application uses a python executable to interface with the MTA API, so `PYTHON_PATH` should be the path to your installed python, for example `/opt/homebrew/opt/python@3.10/bin/python3.10`. Get an MTA API key <a href="https://api.mta.info/#/landing/" target="_blank">here</a>.
+* Set up and fill out environment variables: `cp .env.example .env`. Make sure the `DB_*`, `MTA_*` and `PYTHON_PATH` variables are filled in. This application uses a python executable to interface with the MTA API, so `PYTHON_PATH` should be the path to your installed python, for example `/opt/homebrew/opt/python@3.10/bin/python3.10`. Get an MTA API key [here](https://api.mta.info/#/landing/).
 
 
 ## USAGE
