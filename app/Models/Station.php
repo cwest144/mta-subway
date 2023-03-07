@@ -65,9 +65,9 @@ class Station extends Model
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param float $latitude
      * @param float $longitude
-     * @return void
+     * @return Builder
      */
-    public function scopeDistance(Builder $query, float $latitude, float $longitude): void
+    public function scopeDistance(Builder $query, float $latitude, float $longitude): Builder
     {
         $distance = 10;
         $constant = 3959; // use 6371 for km

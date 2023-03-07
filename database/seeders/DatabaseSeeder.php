@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Models\Stop;
 use App\Models\Line;
+use App\Models\Division;
 use App\Models\LineStation;
 use App\Models\StationStation;
 use App\Models\Station;
@@ -24,33 +25,46 @@ class DatabaseSeeder extends Seeder
     {
         $projectRoot = base_path();
 
-        //seed the lines table;
-        Line::create(['id' => 'A']);
-        Line::create(['id' => 'B']);
-        Line::create(['id' => 'C']);
-        Line::create(['id' => 'D']);
-        Line::create(['id' => 'E']);
-        Line::create(['id' => 'F']);
-        Line::create(['id' => 'G']);
-        Line::create(['id' => 'J']);
-        Line::create(['id' => 'L']);
-        Line::create(['id' => 'M']);
-        Line::create(['id' => 'N']);
-        Line::create(['id' => 'Q']);
-        Line::create(['id' => 'R']);
-        Line::create(['id' => 'W']);
-        Line::create(['id' => 'Z']);
-        Line::create(['id' => '1']);
-        Line::create(['id' => '2']);
-        Line::create(['id' => '3']);
-        Line::create(['id' => '4']);
-        Line::create(['id' => '5']);
-        Line::create(['id' => '6']);
-        Line::create(['id' => '7']);
-        Line::create(['id' => 'GS']);
-        Line::create(['id' => 'H']);
-        Line::create(['id' => 'FS']);
-        Line::create(['id' => 'SIR']);
+        //seed the lines and divisions table
+        $div = Division::create(['endpoint' => 'ace']);
+        foreach(['A', 'C', 'E', 'H', 'FS'] as $lineLetter) {
+            $line = Line::create(['id' => $lineLetter, 'division_id' => $div->id]);
+        }
+
+        $div = Division::create(['endpoint' => 'g']);
+        foreach(['G'] as $lineLetter) {
+            $line = Line::create(['id' => $lineLetter, 'division_id' => $div->id]);
+        }
+
+        $div = Division::create(['endpoint' => 'nqrw']);
+        foreach(['N', 'Q', 'R', 'W'] as $lineLetter) {
+            $line = Line::create(['id' => $lineLetter, 'division_id' => $div->id]);
+        }
+
+        $div = Division::create(['endpoint' => '']);
+        foreach(['1', '2', '3', '4', '5', '6', '7', 'GS'] as $lineLetter) {
+            $line = Line::create(['id' => $lineLetter, 'division_id' => $div->id]);
+        }
+
+        $div = Division::create(['endpoint' => 'bdfm']);
+        foreach(['B', 'D', 'F', 'M'] as $lineLetter) {
+            $line = Line::create(['id' => $lineLetter, 'division_id' => $div->id]);
+        }
+
+        $div = Division::create(['endpoint' => 'jz']);
+        foreach(['J', 'Z'] as $lineLetter) {
+            $line = Line::create(['id' => $lineLetter, 'division_id' => $div->id]);
+        }
+
+        $div = Division::create(['endpoint' => 'l']);
+        foreach(['L'] as $lineLetter) {
+            $line = Line::create(['id' => $lineLetter, 'division_id' => $div->id]);
+        }
+        
+        $div = Division::create(['endpoint' => 'si']);
+        foreach(['SIR'] as $lineLetter) {
+            $line = Line::create(['id' => $lineLetter, 'division_id' => $div->id]);
+        }
 
         // seed the stations table;
         $json = file_get_contents("{$projectRoot}/database/seeders/stations.json");

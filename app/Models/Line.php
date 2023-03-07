@@ -6,13 +6,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Line extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'id'
+        'id',
+        'division_id',
     ];
 
     protected $primaryKey = 'id';
@@ -29,6 +31,16 @@ class Line extends Model
     public function stations(): BelongsToMany
     {
         return $this->belongsToMany(Station::class);
+    }
+
+    /**
+     * Get the Divsion that corresponds to this line.
+     * 
+     * @return BelongsTo
+     */
+    public function division(): BelongsTo
+    {
+        return $this->belongsTo(Division::class);
     }
 
     /**
