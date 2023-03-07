@@ -62,16 +62,18 @@ class DatabaseSeeder extends Seeder
                 'name' => $data[0],
                 'latitude' => $data[1],
                 'longitude' => $data[2],
+                'n_heading' => $data[3],
+                's_heading' => $data[4],
             ]);
 
-            foreach($data[5] as $servedBy) {
+            foreach($data[7] as $servedBy) {
                 $line = Line::find($servedBy);
                 $newStation->lines()->attach($line->id);
             }
         }
         foreach($stationData as $stationId => $data) {
             $station = Station::find($stationId);
-            foreach($data[6] as $connected) {
+            foreach($data[8] as $connected) {
                 $connectedStation = Station::find($connected);
                 $station->connectedStations()->attach($connectedStation->id);
             }
