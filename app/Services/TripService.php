@@ -320,7 +320,7 @@ class TripService
         Station $end
     ): null|Carbon
     {
-        $result = $mta->callMta($line);
+        $result = $mta->getFeed($line->division);
 
         $stop1 = Stop::where('line_id', $line->id)->where('station_id', $start->id)->first();
         $stop2 = Stop::where('line_id', $line->id)->where('station_id', $end->id)->first();
