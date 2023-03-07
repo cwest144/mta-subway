@@ -15,6 +15,8 @@ class Feed extends Model
         'path',
     ];
 
+    const UPDATED_AT = null;
+
     /**
      * Get the Lines that belong to this Divison.
      * 

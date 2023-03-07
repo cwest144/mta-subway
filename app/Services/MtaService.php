@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Division;
 use App\Models\Station;
 use App\Models\Line;
+use App\Models\Feed;
 use Carbon\Carbon;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
@@ -182,23 +184,40 @@ class MtaService
     }
 
     /**
-     * Call the MTA API and return the response body.
+     * Get the most recent feed for the given $division and return it as an array
      * 
-     * @param Line $line
-     * @return array|bool
+     * @param Division $division
+     * @return array
      */
-    public function callMta(Line $line): array|bool
+    public function getFeed(Division $division): array
+    {
+        $feed = $division->feeds()
+            ->where( 'created_at', '>', now()->subMinute())
+            ->orderBy('created_at', 'DESC')
+            ->first();
+
+        if ($feed === null) {
+            $feed = $this->callMta($division);
+        }
+
+        $jsonStr = file_get_contents($feed->path);
+        $result = json_decode($jsonStr, true);
+        return $result;
+    }
+
+    /**
+     * Call the MTA API, create a new Feed with the result, and return the Feed.
+     * 
+     * @param Division $division
+     * @return Feed
+     */
+    public function callMta(Division $division): Feed
     {   
-        $path = $this->getPath($line);
-
-        $pathKey = ($path === '') ? 'irt' : $path;
-
-        $existingFeed = Arr::get($this->feeds, $pathKey) ?? [];
-        if ($existingFeed !== []) return $existingFeed;
+        $endpoint = $division->endpoint;
 
         $url = config('services.mta.endpoint');
-        if ($path !== '') {
-            $url .= "-${path}";
+        if ($endpoint !== '') {
+            $url .= "-${endpoint}";
         }
 
         $process = new Process([config('services.python.path'), base_path() . '/callApi.py', $url]);
@@ -210,9 +229,23 @@ class MtaService
 
         $result = json_decode($process->getOutput(), true);
 
-        $this->feeds[$pathKey] = $result['entity'];
+        $feedContent = $result['entity'];
 
-        return $result['entity'];
+        $jsonString = json_encode($feedContent, JSON_PRETTY_PRINT);
+        
+        $nowStr = now()->format('YmdHis');
+        $filePath = base_path() . "/data/{$endpoint}_{$nowStr}.json";
+
+        $file = fopen($filePath, 'w');
+        fwrite($file, $jsonString);
+        fclose($file);
+
+        $feed = Feed::create([
+            'division_id' => $division->id,
+            'path' => $filePath
+        ]);
+
+        return $feed;
     }
 
     /**

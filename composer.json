@@ -11,6 +11,7 @@
         "laravel/framework": "^9.19",
         "laravel/sanctum": "^3.0",
         "laravel/tinker": "^2.7",
+        "spatie/laravel-short-schedule": "^1.5",
         "symfony/process": "^6.2"
     },
     "require-dev": {

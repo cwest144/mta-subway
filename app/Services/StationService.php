@@ -21,7 +21,7 @@ class StationService
 
         // foreach line, get upcoming arrivals at this station
         foreach ($this->station->allLines() as $line) {
-            $result = $this->mta->callMta($line);
+            $result = $this->mta->getFeed($line->division);
 
             $arrivals[$line->id] = $this->mta->parseFeedForArrivals($line, $this->station, $result);
         }
@@ -59,7 +59,7 @@ class StationService
                 if ($path === '') $path = 'numeric';
                 
                 if ($searched[$path]) continue;
-                $result = $this->mta->callMta($line);
+                $result = $this->mta->getFeed($line->division);
                 $byStation[] = $this->mta->parseFeedForDepartures($station, $result);
                 $searched[$path] = true;
             }

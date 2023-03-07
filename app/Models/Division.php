@@ -25,4 +25,14 @@ class Division extends Model
     {
         return $this->hasMany(Line::class);
     }
+
+    /**
+     * Get the Feeds that correspond to this Divison.
+     * 
+     * @return HasMany
+     */
+    public function feeds(): HasMany
+    {
+        return $this->hasMany(Feed::class);
+    }
 }

@@ -2,8 +2,10 @@
 
 namespace App\Console;
 
+use App\Jobs\RemoveFeedsJob;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Spatie\ShortSchedule\ShortSchedule;
 
 class Kernel extends ConsoleKernel
 {
@@ -15,7 +17,14 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        // Remove old feeds every thirty minutes
+        $schedule->job(new RemoveFeedsJob)->everyThirtyMinutes();
+    }
+
+    protected function shortSchedule(ShortSchedule $shortSchedule)
+    {   
+        // refresh feeds every 30 seconds
+        $shortSchedule->command('feeds:refresh')->everySeconds(30)->withoutOverlapping();
     }
 
     /**
