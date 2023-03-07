@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Station;
 use App\Services\MtaService;
+use Arr;
 
 class StationService
 {
@@ -26,5 +27,96 @@ class StationService
         }
 
         return $arrivals;
+    }
+
+    /**
+     * Get the upcoming arrivals at this station and return as an array keyed by line and heading
+     * 
+     * @return array
+     */
+    public function getDepartures(): array
+    {
+        $departures = [];
+
+        $allStations = [$this->station, ...$this->station->connectedStations];
+
+        $byStation = [];
+
+        // foreach line, get upcoming departures at this station
+        foreach ($allStations as $station) {
+            $searched = [
+                'ace' => false,
+                'bdfm' => false,
+                'nqrw' => false,
+                'g' => false,
+                'l' => false,
+                'jz' => false,
+                'si' => false,
+                'numeric' => false
+            ];
+            foreach ($station->lines as $line) {
+                $path = $this->mta->getPath($line);
+                if ($path === '') $path = 'numeric';
+                
+                if ($searched[$path]) continue;
+                $result = $this->mta->callMta($line);
+                $byStation[] = $this->mta->parseFeedForDepartures($station, $result);
+                $searched[$path] = true;
+            }
+        }
+
+        foreach ($byStation as $platform) {
+            foreach ($platform as $heading => $data) {
+                $departures[$heading]['heading'] = $heading;
+
+                if (Arr::get($departures[$heading], 'departures') === null) {
+                    $departures[$heading]['departures'] = $data;
+                } else {
+                    $departures[$heading]['departures'] = [...$departures[$heading]['departures'], ...$data];
+                }
+
+                // HOYT SCHERMERHORN separate G trains from AC
+                if ($this->station->id === 'A42') {
+                    $newPlatform = $heading === 'Brooklyn' ? 'Church Av' : 'Queens';
+                    $departures[$newPlatform]['heading'] = $newPlatform;
+
+                    $gTrains = array_filter($departures[$heading]['departures'], fn($arr) => $arr['train'] === 'G');
+                    $departures[$newPlatform]['departures'] = $gTrains;
+
+                    $otherTrains = array_filter($departures[$heading]['departures'], fn($arr) => $arr['train'] !== 'G');
+                    $departures[$heading]['departures'] = $otherTrains;
+                }
+                // BERGEN ST separate G trains from F
+                if ($this->station->id === 'F20' && $heading === 'Manhattan') {
+                    $newPlatform = 'Queens';
+                    $departures[$newPlatform]['heading'] = $newPlatform;
+
+                    $gTrains = array_filter($departures[$heading]['departures'], fn($arr) => $arr['train'] === 'G');
+                    $departures[$newPlatform]['departures'] = $gTrains;
+
+                    $otherTrains = array_filter($departures[$heading]['departures'], fn($arr) => $arr['train'] !== 'G');
+                    $departures[$heading]['departures'] = $otherTrains;
+                }
+                // CARROLL ST separate G trains from F
+                if ($this->station->id === 'F21' && $heading === 'Manhattan') {
+                    $newPlatform = 'Queens';
+                    $departures[$newPlatform]['heading'] = $newPlatform;
+
+                    $gTrains = array_filter($departures[$heading]['departures'], fn($arr) => $arr['train'] === 'G');
+                    $departures[$newPlatform]['departures'] = $gTrains;
+
+                    $otherTrains = array_filter($departures[$heading]['departures'], fn($arr) => $arr['train'] !== 'G');
+                    $departures[$heading]['departures'] = $otherTrains;
+                }
+            }
+        }
+
+        foreach ($departures as $key => $platform) {
+            usort($departures[$key]['departures'], function ($a, $b) {
+                return $a['seconds'] <=> $b['seconds'];
+            });
+        }
+
+        return $departures;
     }
 }
