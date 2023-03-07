@@ -55,7 +55,7 @@ class StationService
                 'numeric' => false
             ];
             foreach ($station->lines as $line) {
-                $path = $this->mta->getPath($line);
+                $path = $line->division->endpoint;
                 if ($path === '') $path = 'numeric';
                 
                 if ($searched[$path]) continue;

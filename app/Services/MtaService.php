@@ -247,24 +247,4 @@ class MtaService
 
         return $feed;
     }
-
-    /**
-     * Returns the path for the MTA endpoint corresponding to the given $line.
-     * 
-     * @param Line $line
-     * @return string
-     */
-    public function getPath(Line $line): string
-    {
-        return match ($line->id) {
-            'A', 'C', 'E', 'H', 'FS' => 'ace',
-            'G' => 'g',
-            'N', 'Q', 'R', 'W' => 'nqrw',
-            '1', '2', '3', '4', '5', '6', '7', 'GS' => '',
-            'B', 'D', 'F', 'M' => 'bdfm',
-            'J', 'Z' => 'jz',
-            'L' => 'l',
-            'SIR' => 'si'
-        };
-    }
 }
