@@ -37,9 +37,7 @@ class StationService
     public function getDepartures(): array
     {
         $departures = [];
-
         $allStations = [$this->station, ...$this->station->connectedStations];
-
         $byStation = [];
 
         // foreach line, get upcoming departures at this station
@@ -67,7 +65,9 @@ class StationService
 
         foreach ($byStation as $platform) {
             foreach ($platform as $heading => $data) {
+
                 $departures[$heading]['heading'] = $heading;
+                $departures[$heading]['cardinalDirection'] = Arr::get($data, '0.direction');
 
                 if (Arr::get($departures[$heading], 'departures') === null) {
                     $departures[$heading]['departures'] = $data;
@@ -78,7 +78,9 @@ class StationService
                 // HOYT SCHERMERHORN separate G trains from AC
                 if ($this->station->id === 'A42') {
                     $newPlatform = $heading === 'Brooklyn' ? 'Church Av' : 'Queens';
+                    $direction = $heading === 'Brooklyn' ? 'S' : 'N';
                     $departures[$newPlatform]['heading'] = $newPlatform;
+                    $departures[$newPlatform]['cardinalDirection'] = $direction;
 
                     $gTrains = array_filter($departures[$heading]['departures'], fn($arr) => $arr['train'] === 'G');
                     $departures[$newPlatform]['departures'] = $gTrains;
@@ -90,6 +92,7 @@ class StationService
                 if ($this->station->id === 'F20' && $heading === 'Manhattan') {
                     $newPlatform = 'Queens';
                     $departures[$newPlatform]['heading'] = $newPlatform;
+                    $departures[$newPlatform]['cardinalDirection'] = 'N';
 
                     $gTrains = array_filter($departures[$heading]['departures'], fn($arr) => $arr['train'] === 'G');
                     $departures[$newPlatform]['departures'] = $gTrains;
@@ -101,6 +104,7 @@ class StationService
                 if ($this->station->id === 'F21' && $heading === 'Manhattan') {
                     $newPlatform = 'Queens';
                     $departures[$newPlatform]['heading'] = $newPlatform;
+                    $departures[$newPlatform]['cardinalDirection'] = 'N';
 
                     $gTrains = array_filter($departures[$heading]['departures'], fn($arr) => $arr['train'] === 'G');
                     $departures[$newPlatform]['departures'] = $gTrains;
@@ -110,6 +114,11 @@ class StationService
                 }
             }
         }
+
+        uasort($departures, function ($a, $b) {
+            if ($a['cardinalDirection'] === $b['cardinalDirection']) return 0;
+            return $a['cardinalDirection'] === 'N' ? -1 : 1;
+        });
 
         foreach ($departures as $key => $platform) {
             usort($departures[$key]['departures'], function ($a, $b) {

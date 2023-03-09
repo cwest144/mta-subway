@@ -31,7 +31,9 @@ class RemoveFeedsJob implements ShouldQueue
         $feeds = Feed::where('created_at', '<', now()->subMinutes(30))->get();
 
         foreach ($feeds as $feed) {
-            unlink($feed->path);
+            if (file_exists($feed->path)) {
+                unlink($feed->path);
+            }
             $feed->delete();
         }
     }

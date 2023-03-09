@@ -59,60 +59,74 @@ class MtaService
     public function parseFeedForDepartures(Station $station, array $feed): array
     {
         $platforms = [$station->id . 'N', $station->id . 'S'];
-        $headings = [$station->id . 'N' => $station->n_heading, $station->id . 'S' => $station->s_heading];
+        $headings = [
+            $station->id . 'N' => [
+                'direction' => 'N',
+                'name' => $station->n_heading,
+            ],
+            $station->id . 'S' => [
+                'direction' => 'S',
+                'name' => $station->s_heading
+            ]
+        ];
 
-        $departures = [];
+        $result = [];
 
         $baseTime = new Carbon('first day of january 1970'); //the base time that MTA measures from
         $nowInSeconds = now()->diffInSeconds($baseTime);
 
         foreach ($feed as $item) {
             $thisTrain = Arr::get($item, 'tripUpdate.trip.routeId');
-            if (in_array($thisTrain, $station->lines->pluck('id')->toArray())) {
-                $stopUpdates = Arr::get($item, 'tripUpdate.stopTimeUpdate');
-                if ($stopUpdates === null) continue;
-                foreach($stopUpdates as $stopUpdate) {
-                    $platform = Arr::get($stopUpdate, 'stopId');
-                    if (in_array($platform, $platforms)) {
 
-                        // don't return data for end of line platforms
-                        if ($headings[$platform] === "") continue;
+            $stopUpdates = Arr::get($item, 'tripUpdate.stopTimeUpdate');
+            if ($stopUpdates === null) continue;
 
-                        $departureTime = Arr::get($stopUpdate, 'departure.time');
+            foreach($stopUpdates as $stopUpdate) {
+                $platform = Arr::get($stopUpdate, 'stopId');
+                if (in_array($platform, $platforms)) {
 
-                        if ($departureTime === null) continue;
+                    // don't return data for end of line platforms
+                    if ($headings[$platform] === "") continue;
 
-                        $seconds = intval($departureTime, 10) - $nowInSeconds;
-                        $minutes = (int) floor($seconds / 60);
-                        if ($minutes < 0 || $minutes > 59) continue;
-                        $timeString = $minutes === 0 ? '<1 min' : "$minutes min";
+                    $departureTime = Arr::get($stopUpdate, 'departure.time');
 
-                        $destination = '';
-                        $destStationId = Arr::get($stopUpdates[count($stopUpdates)-1], 'stopId');
-                        if ($destStationId !== null) {
-                            $trimmed = substr($destStationId, 0, -1);
-                            $destStation = Station::find($trimmed);
+                    if ($departureTime === null) continue;
 
-                            if ($destStation !== null) {
-                                // don't return data for trains that are arriving at their destination
-                                if ($destStation->id === $station->id) continue;
+                    $seconds = intval($departureTime, 10) - $nowInSeconds;
+                    //3570 seconds is rounded to 3600 which is an hour
+                    if ($seconds < 0 || $seconds > 3569) continue;
+                    
+                    $timeString = null;
+                    $minutes = (int) round($seconds / 60);
+                    if ($seconds < 30) $timeString = 'now';
+                    else if ($seconds < 60) $timeString = '<1 min';
+                    else $timeString = "$minutes min";
 
-                                $destination = $destStation->name;
-                            }
+                    $destination = '';
+                    $destStationId = Arr::get($stopUpdates[count($stopUpdates)-1], 'stopId');
+                    if ($destStationId !== null) {
+                        $trimmed = substr($destStationId, 0, -1);
+                        $destStation = Station::find($trimmed);
+
+                        if ($destStation !== null) {
+                            // don't return data for trains that are arriving at their destination
+                            if ($destStation->id === $station->id) continue;
+
+                            $destination = $destStation->name;
                         }
-
-                        $departures[$headings[$platform]][] = [
-                            'key' => $platform . $thisTrain . $departureTime,
-                            'train' => $thisTrain,
-                            'seconds' => intval($departureTime, 10),
-                            'time' => $timeString,
-                            'destination' => $destination
-                        ];
                     }
+                    $result[$headings[$platform]['name']][] = [
+                        'direction' => $headings[$platform]['direction'],
+                        'key' => $platform . $thisTrain . $departureTime,
+                        'train' => $thisTrain,
+                        'seconds' => intval($departureTime, 10),
+                        'time' => $timeString,
+                        'destination' => $destination
+                    ];
                 }
             }
         }
-        return $departures;
+        return $result;
     }
 
     /**
